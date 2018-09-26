@@ -1,146 +1,211 @@
 package window;
 
-import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
-import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
-import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
-import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
-import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
-import static org.lwjgl.glfw.GLFW.GLFW_VISIBLE;
-import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
-import static org.lwjgl.glfw.GLFW.glfwDefaultWindowHints;
-import static org.lwjgl.glfw.GLFW.glfwDestroyWindow;
-import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
-import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
-import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
-import static org.lwjgl.glfw.GLFW.glfwInit;
-import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
-import static org.lwjgl.glfw.GLFW.glfwPollEvents;
-import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
-import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
-import static org.lwjgl.glfw.GLFW.glfwSetWindowPos;
-import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
-import static org.lwjgl.glfw.GLFW.glfwShowWindow;
-import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
-import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
-import static org.lwjgl.glfw.GLFW.glfwTerminate;
-import static org.lwjgl.glfw.GLFW.glfwWindowHint;
-import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
-import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.glClear;
-import static org.lwjgl.opengl.GL11.glClearColor;
-import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.system.MemoryUtil.NULL;
+import java.nio.DoubleBuffer;
 
-import java.nio.IntBuffer;
-
-import org.lwjgl.glfw.GLFWErrorCallback;
+import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.system.MemoryStack;
+import org.lwjgl.opengl.GL11;
 
 public class Window
 {
-	// The window handle
+	private int width;
+	private int height;
+	
+	private String title;
+	
+	private double fps;
+	private double time;
+	private double processedTime;
+	
 	private long window;
-
-	public void run()
+	
+	private Vector3f backgroundColor;
+	
+	private boolean[]keys = new boolean[GLFW.GLFW_KEY_LAST];
+	private boolean[]mouseButtons = new boolean[GLFW.GLFW_MOUSE_BUTTON_LAST];
+	
+	public Window(int width, int height, int fps, String title)
 	{
-		init();
-		loop();
-
-		// Free the window callbacks and destroy the window
-		glfwFreeCallbacks(window);
-		glfwDestroyWindow(window);
-
-		// Terminate GLFW and free the error callback
-		glfwTerminate();
-		glfwSetErrorCallback(null).free();
+		this.width = width;
+		this.height = height;
+		this.title = title;
+		
+		this.fps = fps;
+		
+		backgroundColor = new Vector3f(0.0f, 0.0f, 0.0f);
 	}
-
-	private void init()
+	
+	public void create()
 	{
-		// Setup an error callback. The default implementation
-		// will print the error message in System.err.
-		GLFWErrorCallback.createPrint(System.err).set();
-
-		// Initialize GLFW. Most GLFW functions will not work before doing this.
-		if (!glfwInit())
+		if(!GLFW.glfwInit())
 		{
-			throw new IllegalStateException("Unable to initialize GLFW");
+			System.err.println("Error: Couldn't instantiate GLFW");
+			System.exit(-1);
 		}
-
-		// Configure GLFW
-		glfwDefaultWindowHints(); // optional, the current window hints are already the default
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
-
-		// Create the window
-		window = glfwCreateWindow(300, 300, "Hello World!", NULL, NULL);
-
-		if (window == NULL)
+		GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
+		GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, GLFW.GLFW_TRUE);
+		window = GLFW.glfwCreateWindow(width, height, title, 0, 0);
+		
+		if(window == 0)
 		{
-			throw new RuntimeException("Failed to create the GLFW window");
+			System.err.println("Error: Window failed to create");
+			System.exit(-1);
 		}
-
-		// Setup a key callback. It will be called every time a key is pressed, repeated
-		// or released.
-		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
-			if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-			{
-				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
-			}
-		});
-
-		// Get the thread stack and push a new frame
-		try (MemoryStack stack = stackPush())
-		{
-			IntBuffer pWidth = stack.mallocInt(1); // int*
-			IntBuffer pHeight = stack.mallocInt(1); // int*
-
-			// Get the window size passed to glfwCreateWindow
-			glfwGetWindowSize(window, pWidth, pHeight);
-
-			// Get the resolution of the primary monitor
-			GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-
-			// Center the window
-			glfwSetWindowPos(window, (vidmode.width() - pWidth.get(0)) / 2, (vidmode.height() - pHeight.get(0)) / 2);
-		} // the stack frame is popped automatically
-
-		// Make the OpenGL context current
-		glfwMakeContextCurrent(window);
-		// Enable v-sync
-		glfwSwapInterval(1);
-
-		// Make the window visible
-		glfwShowWindow(window);
-	}
-
-	private void loop()
-	{
-		// This line is critical for LWJGL's interoperation with GLFW's
-		// OpenGL context, or any context that is managed externally.
-		// LWJGL detects the context that is current in the current thread,
-		// creates the GLCapabilities instance and makes the OpenGL
-		// bindings available for use.
+		GLFW.glfwMakeContextCurrent(window);
 		GL.createCapabilities();
-
-		// Set the clear color
-		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
-
-		// Run the rendering loop until the user has attempted to close
-		// the window or has pressed the ESCAPE key.
-		while (!glfwWindowShouldClose(window))
+		
+		GLFWVidMode videoMode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
+		GLFW.glfwSetWindowPos(window, (videoMode.width()-width)/2, (videoMode.height()-height)/2);
+		
+		GLFW.glfwShowWindow(window);
+	}
+	public boolean closed()
+	{
+		return GLFW.glfwWindowShouldClose(window);
+	}
+	public void update()
+	{
+		for(int i=0; i<GLFW.GLFW_KEY_LAST; i++)
 		{
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-
-			glfwSwapBuffers(window); // swap the color buffers
-
-			// Poll for window events. The key callback above will only be
-			// invoked during this call.
-			glfwPollEvents();
+			keys[i] = isKeyPressed(i);
 		}
+		for(int i=0; i<GLFW.GLFW_MOUSE_BUTTON_LAST; i++)
+		{
+			mouseButtons[i] = isMouseDown(i);
+		}
+		GL11.glClearColor(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1.0f);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+		
+		GLFW.glfwPollEvents();
+	}
+	public boolean isUpdating()
+	{
+		double nextTime = getTime();
+		double passedTime = nextTime - time;
+		processedTime += passedTime;
+		time = nextTime;
+		
+		if(processedTime > 1.0/fps)
+		{
+			processedTime -= 1.0/fps;
+			return true;
+		}
+		return false;
+	}
+	public void swapBuffers()
+	{
+		GLFW.glfwSwapBuffers(window);
+	}
+	public boolean isKeyPressed(int keyCode)
+	{
+		return GLFW.glfwGetKey(window, keyCode) == 1;
+	}
+	public boolean isKeyReleased(int keyCode)
+	{
+		return (!isKeyPressed(keyCode) && keys[keyCode]);
+	}
+	public boolean isKeyTyped(int keyCode)
+	{
+		return (isKeyPressed(keyCode) && !keys[keyCode]);
+	}
+	public boolean isMouseDown(int mouseButton)
+	{
+		return GLFW.glfwGetMouseButton(window, mouseButton) == 1;
+	}
+	public boolean isMouseReleased(int mouseButton)
+	{
+		return (!isMouseDown(mouseButton) && mouseButtons[mouseButton]);
+	}
+	public boolean isMouseClicked(int mouseButton)
+	{
+		return (isMouseDown(mouseButton) && !mouseButtons[mouseButton]);
+	}
+	
+	public double getMouseXPos()
+	{
+		DoubleBuffer buffer = BufferUtils.createDoubleBuffer(1);
+		GLFW.glfwGetCursorPos(window, buffer, null);
+		return buffer.get(0);
+	}
+	public double getMouseYPos()
+	{
+		DoubleBuffer buffer = BufferUtils.createDoubleBuffer(1);
+		GLFW.glfwGetCursorPos(window, null, buffer);
+		return buffer.get(0);
+	}
+
+	public double getTime()
+	{
+		return (double)System.nanoTime() / (double)1000000000;
+	}
+	public int getWidth()
+	{
+		return width;
+	}
+
+	public int getHeight()
+	{
+		return height;
+	}
+
+	public String getTitle()
+	{
+		return title;
+	}
+
+	public long getWindow()
+	{
+		return window;
+	}
+
+	public void setBackgroundColor(Vector3f backgroundColor)
+	{
+		this.backgroundColor = backgroundColor;
+	}
+
+	public void setBackgroundColor(float x, float y, float z)
+	{
+		setBackgroundColor(new Vector3f(x, y, z));
+	}	
+	public void close()
+	{
+		GLFW.glfwTerminate();
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
