@@ -5,11 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
-import tools.Matrix4f;
-import tools.Vector3f;
 
 public abstract class ShaderProgram
 {
@@ -130,23 +130,14 @@ public abstract class ShaderProgram
 
 	protected void loadVectorUniform(int location, Vector3f value)
 	{
-		GL20.glUniform3f(location, value.getX(), value.getY(), value.getZ());
+		GL20.glUniform3f(location, value.x, value.y, value.z);
 	}
 
 	protected void loadMatrixUniform(int location, Matrix4f value)
 	{
 		FloatBuffer buffer = BufferUtils.createFloatBuffer(16);
-
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				buffer.put(value.get(i, j));
-			}
-		}
-
-		buffer.flip();
-
-		GL20.glUniformMatrix4fv(location, true, buffer);
+		value.get(buffer);
+		//buffer.flip();
+		GL20.glUniformMatrix4fv(location, false, buffer);
 	}
 }
