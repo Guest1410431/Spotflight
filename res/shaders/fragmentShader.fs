@@ -1,10 +1,12 @@
-#version 400 core
+#version 150
 
-in vec4 color;
+in vec2 passTextCoords;
 
 out vec4 fragColor;
 
-void main()
+uniform sampler2D sampler;
+
+void main(void) 
 {
-	fragColor = color;
+	fragColor = texture(sampler, passTextCoords);
 }
