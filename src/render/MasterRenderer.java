@@ -9,14 +9,23 @@ import entity.EntityModel;
 import models.RawModel;
 import models.TexturedModel;
 import shaders.BasicShader;
+import tools.Matrix4f;
+import window.Window;
 
 public class MasterRenderer
 {
+	private Window window;
 	private BasicShader shader;
 	
-	public MasterRenderer(BasicShader shader)
+	public MasterRenderer(Window window, BasicShader shader)
 	{
+		this.window = window;
 		this.shader = shader;
+	}
+	
+	public void create()
+	{
+		shader.loadProjectionMatrix(new Matrix4f().projection(70.0f, (float)window.getWidth()/window.getHeight(), 0.1f, 1000.0f));
 	}
 	
 	public void renderRawModel(RawModel model)
