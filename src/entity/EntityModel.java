@@ -2,28 +2,24 @@ package entity;
 
 import models.TexturedModel;
 import tools.Matrix4f;
-import tools.MatrixMath;
+import tools.TransformationMatrix;
 import tools.Vector3f;
 
 public class EntityModel
 {
 	private TexturedModel texturedModel;
 
-	private Vector3f position;
-	private Vector3f rotation;
-	private Vector3f scale;
+	TransformationMatrix transformationMatrix;
 
 	public EntityModel(TexturedModel texturedModel, Vector3f position, Vector3f rotation, Vector3f scale)
 	{
 		this.texturedModel = texturedModel;
-		this.position = position;
-		this.rotation = rotation;
-		this.scale = scale;
+		transformationMatrix = new TransformationMatrix(position, rotation, scale);
 	}
 
 	public Matrix4f getTransformationMatrix()
 	{
-		return MatrixMath.createTransformationMatrix(position, rotation, scale);
+		return transformationMatrix.getTransformation();
 	}
 
 	public TexturedModel getTexturedModel()
@@ -36,59 +32,63 @@ public class EntityModel
 		this.texturedModel = texturedModel;
 	}
 
-	public Vector3f getPosition()
+	public void addPosition(float x, float y, float z)
 	{
-		return position;
+		transformationMatrix.setTranslation(transformationMatrix.getTranslation().add(new Vector3f(x, y, z)));
 	}
 
-	public void setPosition(Vector3f position)
+	public void addRotation(float x, float y, float z)
 	{
-		this.position = position;
+		transformationMatrix.setRotation(transformationMatrix.getRotation().add(new Vector3f(x, y, z)));
+	}
+
+	public void addScale(float x, float y, float z)
+	{
+		transformationMatrix.setScale(transformationMatrix.getScale().add(new Vector3f(x, y, z)));
+	}
+
+	public TexturedModel getModel()
+	{
+		return texturedModel;
+	}
+
+	public void setModel(TexturedModel texturedModel)
+	{
+		this.texturedModel = texturedModel;
 	}
 
 	public Vector3f getRotation()
 	{
-		return rotation;
+		return transformationMatrix.getRotation();
 	}
 
-	public void setRotation(Vector3f rotation)
+	public void setRotation(Vector3f vector)
 	{
-		this.rotation = rotation;
+		transformationMatrix.setRotation(vector);
+	}
+
+	public Vector3f getPosition()
+	{
+		return transformationMatrix.getTranslation();
+	}
+
+	public void setPosition(Vector3f vector)
+	{
+		transformationMatrix.setTranslation(vector);
 	}
 
 	public Vector3f getScale()
 	{
-		return scale;
+		return transformationMatrix.getScale();
 	}
 
-	public void setScale(Vector3f scale)
+	public void setScale(Vector3f vector)
 	{
-		this.scale = scale;
-	}
-
-	public void increasePosition(Vector3f increase)
-	{
-		this.position.setX(this.position.getX() + increase.getX());
-		this.position.setY(this.position.getY() + increase.getY());
-		this.position.setZ(this.position.getZ() + increase.getZ());
-	}
-
-	public void increaseRotation(Vector3f increase)
-	{
-		this.rotation.setX(this.rotation.getX() + increase.getX());
-		this.rotation.setY(this.rotation.getY() + increase.getY());
-		this.rotation.setZ(this.rotation.getZ() + increase.getZ());
-	}
-	
-	public void increaseScale(Vector3f increase)
-	{
-		this.scale.setX(this.scale.getX() + increase.getX());
-		this.scale.setY(this.scale.getY() + increase.getY());
-		this.scale.setZ(this.scale.getZ() + increase.getZ());
+		transformationMatrix.setScale(vector);
 	}
 
 	public String toString()
 	{
-		return "Pos: " + position.toString() + " | Rot: " + rotation.toString();
+		return transformationMatrix.toString();
 	}
 }

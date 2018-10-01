@@ -57,6 +57,8 @@ public class Main
 			{
 				window.update();
 			
+				entity.addRotation(0, 0.02f, 0);
+				
 				if (window.isKeyPressed(GLFW.GLFW_KEY_ESCAPE))
 				{
 					break;
